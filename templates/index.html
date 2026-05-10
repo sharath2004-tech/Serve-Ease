@@ -126,15 +126,16 @@
         // ── FIREBASE CONFIG ─────────────────────────────────────────────
         // Replace every value below with your own Firebase project settings.
         // Console: https://console.firebase.google.com → Project Settings → Your apps
-        const FIREBASE_CONFIG = {
-            apiKey: 'REPLACE_API_KEY',
-            authDomain: 'REPLACE_PROJECT_ID.firebaseapp.com',
-            projectId: 'REPLACE_PROJECT_ID',
-            storageBucket: 'REPLACE_PROJECT_ID.appspot.com',
-            messagingSenderId: 'REPLACE_SENDER_ID',
-            appId: 'REPLACE_APP_ID'
+       const firebaseConfig = {
+        apiKey: "AIzaSyD2kwnj-a6P32br1DOKDz5ogrKnVug144A",
+        authDomain: "ddgg-142ed.firebaseapp.com",
+        projectId: "ddgg-142ed",
+        storageBucket: "ddgg-142ed.firebasestorage.app",
+        messagingSenderId: "636494135214",
+        appId: "1:636494135214:web:2601c3da71340ba465123f",
+        measurementId: "G-3Y7Z29B7EK"
         };
-        try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) { console.warn('Firebase not configured:', e.message); }
+        try { firebase.initializeApp(firebaseConfig); } catch(e) { console.warn('Firebase not configured:', e.message); }
         let confirmationResult = null;
         
         const showToast = (message, type = 'info', duration = 4000) => {
