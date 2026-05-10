@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd service && npm install && npm run build",
+  "outputDirectory": "service/dist",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
