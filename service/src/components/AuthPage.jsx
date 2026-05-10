@@ -24,10 +24,14 @@ export default function AuthPage() {
     if (phone.length !== 10) return showToast('Enter 10-digit mobile number', 'error')
     setLoading(true)
     try {
+      // Fully destroy old verifier and wipe the DOM node
       if (window.recaptchaVerifier) {
         try { window.recaptchaVerifier.clear() } catch (_) {}
         window.recaptchaVerifier = null
       }
+      const container = document.getElementById('recaptcha-container')
+      if (container) container.innerHTML = ''
+
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => console.log('[Firebase] reCAPTCHA solved'),
