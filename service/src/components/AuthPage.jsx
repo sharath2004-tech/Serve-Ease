@@ -131,11 +131,13 @@ export default function AuthPage() {
                     className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-left hover:bg-emerald-100 transition-colors">
                     <p className="text-xs font-bold text-emerald-700">👤 Customer</p>
                     <p className="text-xs text-emerald-600 mt-0.5 font-mono">9000000001</p>
+                    <p className="text-xs text-emerald-500 mt-1">OTP: <span className="font-bold font-mono">123456</span></p>
                   </button>
                   <button onClick={() => { setPhone('9876543210'); setRole('vendor') }}
                     className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-left hover:bg-indigo-100 transition-colors">
                     <p className="text-xs font-bold text-indigo-700">🔧 Vendor</p>
                     <p className="text-xs text-indigo-600 mt-0.5 font-mono">9876543210</p>
+                    <p className="text-xs text-indigo-500 mt-1">OTP: <span className="font-bold font-mono">123456</span></p>
                   </button>
                 </div>
               </div>
@@ -146,7 +148,11 @@ export default function AuthPage() {
                 ← +91 {phone}
               </button>
               <h2 className="text-xl font-bold text-slate-800 mb-1">Enter OTP</h2>
-              <p className="text-slate-500 text-sm mb-6">Sent to +91 {phone}</p>
+              <p className="text-slate-500 text-sm">Sent to +91 {phone}</p>
+              {['9000000001','9876543210'].includes(phone) && (
+                <p className="text-xs text-indigo-600 font-semibold mt-1 mb-4">💡 Demo OTP: <span className="font-mono bg-indigo-50 px-2 py-0.5 rounded-lg">1 2 3 4 5 6</span></p>
+              )}
+              {!['9000000001','9876543210'].includes(phone) && <div className="mb-6" />}
 
               {/* OTP boxes */}
               <div className="flex gap-2 justify-between mb-6">
