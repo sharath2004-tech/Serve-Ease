@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 import os
 import random
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -132,7 +135,16 @@ with app.app_context():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    firebase = {
+        'api_key': os.environ.get('FIREBASE_API_KEY', ''),
+        'auth_domain': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+        'project_id': os.environ.get('FIREBASE_PROJECT_ID', ''),
+        'storage_bucket': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+        'messaging_sender_id': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+        'app_id': os.environ.get('FIREBASE_APP_ID', ''),
+        'measurement_id': os.environ.get('FIREBASE_MEASUREMENT_ID', ''),
+    }
+    return render_template('index.html', firebase=firebase)
 
 
 @app.route('/api/send-otp', methods=['POST'])

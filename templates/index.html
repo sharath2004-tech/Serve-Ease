@@ -123,17 +123,15 @@
         const apiUrl = '/api';
         let currentUser = null; let currentRole = null;
 
-        // ── FIREBASE CONFIG ─────────────────────────────────────────────
-        // Replace every value below with your own Firebase project settings.
-        // Console: https://console.firebase.google.com → Project Settings → Your apps
-       const firebaseConfig = {
-        apiKey: "AIzaSyD2kwnj-a6P32br1DOKDz5ogrKnVug144A",
-        authDomain: "ddgg-142ed.firebaseapp.com",
-        projectId: "ddgg-142ed",
-        storageBucket: "ddgg-142ed.firebasestorage.app",
-        messagingSenderId: "636494135214",
-        appId: "1:636494135214:web:2601c3da71340ba465123f",
-        measurementId: "G-3Y7Z29B7EK"
+        // ── FIREBASE CONFIG (injected server-side — credentials live in .env) ──
+        const firebaseConfig = {
+            apiKey: "{{ firebase.api_key }}",
+            authDomain: "{{ firebase.auth_domain }}",
+            projectId: "{{ firebase.project_id }}",
+            storageBucket: "{{ firebase.storage_bucket }}",
+            messagingSenderId: "{{ firebase.messaging_sender_id }}",
+            appId: "{{ firebase.app_id }}",
+            measurementId: "{{ firebase.measurement_id }}"
         };
         try { firebase.initializeApp(firebaseConfig); } catch(e) { console.warn('Firebase not configured:', e.message); }
         let confirmationResult = null;
@@ -1115,12 +1113,16 @@
             if (!phone || phone.length !== 10) return showToast('Enter 10-digit mobile number', 'error');
             const fullPhone = '+91' + phone;
             try {
-                if (!window.recaptchaVerifier) {
-                    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-                        size: 'invisible', callback: () => {}
-                    });
-                    await window.recaptchaVerifier.render();
+                // Always recreate verifier — stale instance causes silent failures
+                if (window.recaptchaVerifier) {
+                    try { window.recaptchaVerifier.clear(); } catch (_) {}
+                    window.recaptchaVerifier = null;
                 }
+                window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                    size: 'invisible',
+                    callback: () => { console.log('[Firebase] reCAPTCHA solved'); }
+                });
+                // Do NOT call .render() manually — Firebase triggers it inside signInWithPhoneNumber
                 showToast('Sending OTP to ' + fullPhone + '…', 'info', 3000);
                 confirmationResult = await firebase.auth().signInWithPhoneNumber(fullPhone, window.recaptchaVerifier);
                 localStorage.setItem('phone', phone);
@@ -1130,8 +1132,15 @@
                 otpSec.classList.add('animate-fade-in');
                 showToast('OTP sent! Check your SMS.', 'success');
             } catch (err) {
-                showToast('Error: ' + (err.message || 'Could not send OTP'), 'error');
-                if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
+                console.error('[Firebase] sendOtp error:', err.code, err.message);
+                const code = err.code || '';
+                let msg = err.message || 'Could not send OTP';
+                if (code === 'auth/invalid-phone-number') msg = 'Invalid phone number format (+91XXXXXXXXXX)';
+                else if (code === 'auth/too-many-requests') msg = 'Too many attempts — try again later';
+                else if (code.includes('app-not-authorized') || code.includes('unauthorized-domain')) msg = 'Domain not authorized. In Firebase Console → Authentication → Settings → Authorized Domains → add localhost';
+                else if (code.includes('recaptcha')) msg = 'reCAPTCHA failed. Add localhost to Firebase authorized domains';
+                showToast(msg, 'error');
+                if (window.recaptchaVerifier) { try { window.recaptchaVerifier.clear(); } catch (_) {} window.recaptchaVerifier = null; }
             }
         };
 
