@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serve Ease | Premium Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Manrope', 'sans-serif'],
+                    },
+                    colors: {
+                        indigo: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        surface: '#f9fafb',
+                    },
+                    animation: {
+                        'float': 'floating 3s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        floating: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: 0, transform: 'translateY(20px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        .skip-link { position: absolute; left: 8px; top: 8px; background: #fff; color: #0f172a; padding: 8px 12px; border-radius: 8px; z-index: 60; transform: translateY(-120%); transition: transform .2s ease; }
+        .skip-link:focus { transform: translateY(0%); box-shadow: 0 6px 20px rgba(15,23,42,0.12); }
+        .mobile-menu { position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 120; display: flex; align-items: flex-start; padding-top: 72px; }
+        .mobile-menu .panel { background: white; width: 85%; max-width: 360px; height: 100vh; padding: 20px; box-shadow: 0 30px 80px rgba(2,6,23,0.6); }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); }
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
+        .premium-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); }
+        .hover-lift { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.15); border-color: rgba(99, 102, 241, 0.3); }
+        .gradient-text { background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .gradient-bg { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
+        .mesh-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; background: #f8fafc; }
+        .mesh-blob { position: absolute; filter: blur(80px); opacity: 0.4; border-radius: 50%; animation: blob 10s infinite alternate; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .toast-enter { animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast-exit { animation: fadeOut 0.3s ease forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: scale(0.9); } }
+        .input-premium { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); width: 100%; outline: none; }
+        .input-premium:focus, .input-premium:active { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .otp-input { width: 44px; height: 56px; font-size: 24px; text-align: center; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 3px; font-weight: 600; color: #1e293b; transition: all 0.2s ease; outline: none; background: white; }
+        .otp-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .badge-premium { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+        
+        /* Floating label styles */
+        .input-group { position: relative; }
+        .float-label { position: absolute; left: 16px; top: 15px; color: #94a3b8; pointer-events: none; transition: all 0.2s ease; background: white; padding: 0 4px; font-size: 15px; }
+        .input-premium:focus ~ .float-label,
+        .input-premium:not(:placeholder-shown) ~ .float-label { transform: translateY(-24px); font-size: 12px; color: #4f46e5; font-weight: 600; }
+    </style>
+</head>
+<body class="antialiased text-slate-800">
+    <div id="recaptcha-container"></div>
+    <a href="#app" class="skip-link">Skip to content</a>
+    <div class="mesh-bg">
+        <div class="mesh-blob bg-indigo-300 w-96 h-96 top-0 left-0" style="animation-delay: 0s;"></div>
+        <div class="mesh-blob bg-sky-200 w-96 h-96 bottom-0 right-0" style="animation-delay: 2s;"></div>
+        <div class="mesh-blob bg-purple-200 w-80 h-80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="animation-delay: 4s;"></div>
+    </div>
+    <!-- persistent global mobile header (only shows on small screens) -->
+    <header id="globalHeader" class="md:hidden fixed top-0 left-0 w-full z-60">
+        <div class="flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-md border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 gradient-bg text-white rounded-lg flex items-center justify-center"><i class="fas fa-layer-group"></i></div>
+                <span class="font-heading font-bold">Serve Ease</span>
+            </div>
+            <button aria-label="Open menu" id="mobileMenuBtn" onclick="toggleMobileMenu()" class="p-2 rounded-md bg-white shadow-sm"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
+
+    <div id="app" class="relative z-10 min-h-screen flex flex-col"></div>
+    <script>
+        const apiUrl = '/api';
+        let currentUser = null; let currentRole = null;
+
+        // ── FIREBASE CONFIG ─────────────────────────────────────────────
+        // Replace every value below with your own Firebase project settings.
+        // Console: https://console.firebase.google.com → Project Settings → Your apps
+        const FIREBASE_CONFIG = {
+            apiKey: 'REPLACE_API_KEY',
+            authDomain: 'REPLACE_PROJECT_ID.firebaseapp.com',
+            projectId: 'REPLACE_PROJECT_ID',
+            storageBucket: 'REPLACE_PROJECT_ID.appspot.com',
+            messagingSenderId: 'REPLACE_SENDER_ID',
+            appId: 'REPLACE_APP_ID'
+        };
+        try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) { console.warn('Firebase not configured:', e.message); }
+        let confirmationResult = null;
+        
+        const showToast = (message, type = 'info', duration = 4000) => {
+            const toastId = 'toast-' + Date.now();
+            const isSuccess = type === 'success';
+            const isError = type === 'error';
+            const icon = isSuccess ? '<i class="fas fa-check-circle text-emerald-500 text-xl"></i>' : isError ? '<i class="fas fa-exclamation-circle text-rose-500 text-xl"></i>' : '<i class="fas fa-info-circle text-blue-500 text-xl"></i>';
+            const bgColor = isSuccess ? 'border-l-emerald-500' : isError ? 'border-l-rose-500' : 'border-l-blue-500';
+            
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `toast-enter fixed bottom-8 right-8 z-[100] glass-card px-6 py-4 rounded-2xl flex items-center gap-4 premium-shadow border-l-4 ${bgColor} max-w-sm w-full`;
+            toast.innerHTML = `<div class="flex-shrink-0">${icon}</div><div class="flex-grow"><h4 class="text-sm font-bold text-slate-800">${isSuccess ? 'Success' : isError ? 'Error' : 'Notification'}</h4><p class="text-sm text-slate-600 font-medium">${message}</p></div><button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fas fa-times"></i></button>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { if(document.getElementById(toastId)) { toast.classList.replace('toast-enter', 'toast-exit'); setTimeout(() => toast.remove(), 300); } }, duration);
+        };
+
+        // Mobile menu handling (persistent across SPA renders)
+        let mobileMenuOpen = false;
+        function toggleMobileMenu() {
+            if (mobileMenuOpen) return closeMobileMenu();
+            const panel = document.createElement('div');
+            panel.className = 'mobile-menu';
+            panel.id = 'mobileMenuOverlay';
+            panel.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-label="Main menu">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 gradient-bg text-white rounded-lg flex items-center justify-center"><i class="fas fa-layer-group"></i></div><div class="font-bold">Serve Ease</div></div>
+                    <button aria-label="Close menu" onclick="closeMobileMenu()" class="p-2 rounded-md"><i class="fas fa-times"></i></button>
+                </div>
+                <nav class="space-y-3">
+                    <button onclick="renderCustomer(); closeMobileMenu()" class="w-full text-left py-3">Home</button>
+                    <button onclick="renderServiceList(); closeMobileMenu()" class="w-full text-left py-3">Services</button>
+                    <button onclick="renderCustomerBookings(); closeMobileMenu()" class="w-full text-left py-3">My Bookings</button>
+                    <button onclick="renderVendorMain(); closeMobileMenu()" class="w-full text-left py-3">Vendor Board</button>
+                    <button onclick="logout(); closeMobileMenu()" class="w-full text-left py-3 text-rose-600">Logout</button>
+                </nav>
+            </div>`;
+            document.body.appendChild(panel);
+            mobileMenuOpen = true;
+            document.getElementById('mobileMenuBtn').setAttribute('aria-expanded','true');
+        }
+        function closeMobileMenu() {
+            const overlay = document.getElementById('mobileMenuOverlay');
+            if (overlay) overlay.remove();
+            mobileMenuOpen = false;
+            const btn = document.getElementById('mobileMenuBtn'); if (btn) btn.setAttribute('aria-expanded','false');
+        }
+
+        // Global keyboard handling: Enter activates focused button-like elements; Escape closes modal/menu
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('bookingModal');
+                if (modal && !modal.classList.contains('hidden')) closeModal();
+                if (mobileMenuOpen) closeMobileMenu();
+            }
+            if (e.key === 'Enter') {
+                const el = document.activeElement;
+                if (el && el.getAttribute && el.getAttribute('role') === 'button') el.click();
+            }
+        });
+
+        const apiCall = async (endpoint, method = 'GET', body = null) => {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+            const res = await fetch(`${apiUrl}${endpoint}`, options);
+            if (!res.ok) throw new Error('API Error');
+            return res.json();
+        };
+
+        const render = (html) => {
+            document.getElementById('app').innerHTML = html;
+            setupOtpInputs();
+        };
+
+        const getActiveUserId = () => currentUser || parseInt(localStorage.getItem('user_id') || '0', 10) || null;
+        const getActiveRole = () => currentRole || localStorage.getItem('role');
+
+        const setupOtpInputs = () => {
+            const inputs = document.querySelectorAll('.otp-input');
+            if(!inputs.length) return;
+            inputs.forEach((input, index) => {
+                input.addEventListener('keyup', (e) => {
+                    if(e.target.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus();
+                });
+                input.addEventListener('keydown', (e) => {
+                    if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus();
+                });
+                input.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+            });
+        };
+
+        const renderAuth = () => {
+            const html = `
+                <div class="flex flex-col md:flex-row w-full min-h-screen animate-fade-in">
+                    <div class="hidden md:flex md:w-[45%] bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 lg:p-20 text-white">
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-indigo-600/90"></div>
+                        <div class="relative z-10 transition-transform duration-700 hover:scale-105">
+                            <div class="flex items-center gap-3 text-2xl font-heading font-extrabold tracking-tight mb-10">
+                                <div class="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-indigo-900/50"><i class="fas fa-layer-group"></i></div>
+                                Serve Ease
+                            </div>
+                            <h1 class="text-4xl lg:text-6xl font-heading font-extrabold leading-[1.1] mb-6">Expert services,<br/>delivered to your<br/>homes.</h1>
+                            <p class="text-indigo-100 text-lg lg:text-xl max-w-md font-medium">Experience the most reliable professionals for all your home and business needs.</p>
+                        </div>
+                        <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-2xl">
+                            <div class="flex items-center gap-4">
+                                <div class="flex -space-x-3">
+                                    <img class="w-12 h-12 rounded-full border-2 border-indigo-600" src="https://i.pravatar.cc/100?img=1" alt="User 1"/>
+                                    <img class="w-12 h-12 rounded-full border-2 border-indigo-600" src="https://i.pravatar.cc/100?img=2" alt="User 2"/>
+                                    <img class="w-12 h-12 rounded-full border-2 border-indigo-600" src="https://i.pravatar.cc/100?img=3" alt="User 3"/>
+                                </div>
+                                <div class="text-sm">
+                                    <div class="flex text-amber-400 text-sm mb-1"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                                    <span class="font-bold text-white">4.9/5</span> <span class="text-indigo-200">from 10k+ reviews</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center items-center p-6 bg-surface/50 backdrop-blur-md relative">
+                        <div class="w-full max-w-[440px] animate-slide-up" style="animation-delay: 0.1s">
+                            <div class="md:hidden flex items-center gap-3 text-3xl font-heading font-extrabold text-slate-800 mb-10 justify-center">
+                                <div class="w-10 h-10 gradient-bg text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-layer-group text-lg"></i></div>
+                                Serve Ease
+                            </div>
+                            <div class="glass-card p-10 rounded-[28px] premium-shadow border border-white bg-white/60">
+                                <div class="text-center mb-8">
+                                    <h2 class="text-3xl font-heading font-extrabold text-slate-900 mb-2 tracking-tight">Welcome</h2>
+                                    <p class="text-slate-500 font-medium">Enter your details to securely sign in</p>
+                                </div>
+                                <div class="space-y-6">
+                                    <div class="bg-slate-100/80 p-1.5 rounded-[16px] flex gap-1 mb-6 border border-slate-200/50">
+                                        <button id="roleCustomerBtn" onclick="document.getElementById('role').value = 'customer'; this.classList.add('bg-white','shadow-md','text-indigo-600'); document.getElementById('roleVendorBtn').classList.remove('bg-white','shadow-md','text-indigo-600');" class="flex-1 py-2.5 rounded-[12px] text-sm font-bold transition-all bg-white shadow-md text-indigo-600"><i class="fas fa-user mr-2"></i> Customer</button>
+                                        <button id="roleVendorBtn" onclick="document.getElementById('role').value = 'vendor'; this.classList.add('bg-white','shadow-md','text-indigo-600'); document.getElementById('roleCustomerBtn').classList.remove('bg-white','shadow-md','text-indigo-600');" class="flex-1 py-2.5 rounded-[12px] text-sm font-bold transition-all text-slate-500"><i class="fas fa-briefcase mr-2"></i> Vendor</button>
+                                    </div>
+                                    <input type="hidden" id="role" value="customer">
+                                    <div id="phone-section" class="animate-fade-in">
+                                        <div class="input-group mb-6">
+                                            <input type="tel" id="phone" class="input-premium w-full text-lg font-medium" placeholder=" " maxlength="10">
+                                            <label class="float-label">Mobile Number</label>
+                                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-lg"><i class="fas fa-mobile-alt"></i></div>
+                                        </div>
+                                        <button onclick="sendOtp()" class="w-full gradient-bg text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:shadow-indigo-500/30 transition-all text-lg flex items-center justify-center gap-2 group">
+                                            <span>Continue Securely</span>
+                                            <i class="fas fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                        <div onclick="fillDemo('9000000001','customer')" class="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 cursor-pointer hover:shadow-md" role="button" aria-pressed="false">
+                                            <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">Demo Customer</div>
+                                            <div class="font-semibold text-slate-900">9000000001</div>
+                                            <div class="text-xs text-slate-500">Role: customer</div>
+                                        </div>
+                                        <div onclick="fillDemo('9876543210','vendor')" class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 cursor-pointer hover:shadow-md" role="button" aria-pressed="false">
+                                            <div class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-1">Demo Vendor</div>
+                                            <div class="font-semibold text-slate-900">9876543210</div>
+                                            <div class="text-xs text-slate-500">Role: vendor</div>
+                                        </div>
+                                    </div>
+                                    <div id="otp-section" class="hidden">
+                                        <div class="bg-indigo-50 rounded-xl p-4 mb-6 border border-indigo-100 flex items-center justify-between">
+                                            <div class="flex items-center gap-3 text-indigo-800 font-medium text-sm">
+                                                <i class="fas fa-shield-check text-indigo-500 text-lg"></i> Check your messages for code
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between mb-8" id="otp-container">
+                                            <input type="text" class="otp-input" maxlength="1"><input type="text" class="otp-input" maxlength="1">
+                                            <input type="text" class="otp-input" maxlength="1"><input type="text" class="otp-input" maxlength="1">
+                                            <input type="text" class="otp-input" maxlength="1"><input type="text" class="otp-input" maxlength="1">
+                                        </div>
+                                        <button onclick="verifyOtp()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:bg-slate-800 transition-all text-lg flex items-center justify-center gap-2">
+                                            Verify & Login
+                                        </button>
+                                        <div class="text-center mt-5 text-sm font-semibold">
+                                            <button onclick="location.reload()" class="text-slate-500 hover:text-indigo-600 transition-colors"><i class="fas fa-arrow-left mr-1"></i> Edit Number</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-8 flex justify-center items-center gap-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                <div class="flex items-center gap-2"><i class="fas fa-lock text-slate-300"></i> Secure</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-bolt text-slate-300"></i> Fast</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check-circle text-slate-300"></i> Verified</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        const renderCustomer = () => {
+            const services = [
+                { id: 1, name: 'Home Cleaning', icon: 'fa-broom', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', cat: 'Cleaning', price: 'From $19', rating: 4.8 },
+                { id: 2, name: 'Plumbing Repair', icon: 'fa-wrench', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100', cat: 'Repairs', price: 'From $29', rating: 4.7 },
+                { id: 3, name: 'Electrical Fixes', icon: 'fa-bolt', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', cat: 'Repairs', price: 'From $25', rating: 4.6 },
+                { id: 4, name: 'Wall Painting', icon: 'fa-paint-roller', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', cat: 'Renovation', price: 'From $49', rating: 4.5 },
+                { id: 5, name: 'Carpentry', icon: 'fa-hammer', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', cat: 'Woodwork', price: 'From $39', rating: 4.6 },
+                { id: 6, name: 'AC Maintenance', icon: 'fa-snowflake', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-100', cat: 'Appliance', price: 'From $59', rating: 4.7 }
+            ];
+            const serviceCards = services.map(s => `
+                <div class="bg-white rounded-3xl p-6 hover-lift cursor-pointer border ${s.border} shadow-sm hover:shadow-xl group transition-all" onclick="bookModal('${s.name}')" role="button" tabindex="0" aria-pressed="false">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center">
+                                <img src="https://picsum.photos/seed/${encodeURIComponent(s.name)}/80/80" alt="${s.name}" class="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-extrabold text-slate-800 text-lg mb-1 group-hover:text-indigo-600 transition-colors">${s.name}</h3>
+                                <div class="text-xs text-slate-500">${s.cat}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-slate-800 mb-1">${s.price}</div>
+                            <div class="text-xs text-amber-500 font-semibold"><i class="fas fa-star mr-1"></i>${s.rating}</div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium mb-6">Top-rated professionals for flawless execution.</p>
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-5">
+                        <div class="flex items-center gap-2 text-xs font-bold text-emerald-600"><i class="fas fa-clock"></i> 30-60 mins</div>
+                        <button class="px-4 py-2 rounded-2xl bg-indigo-600 text-white font-semibold">Book now</button>
+                    </div>
+                </div>
+            `).join('');
+
+                        const navAuthHtml = currentUser
+                            ? ( currentRole === 'vendor'
+                                        ? `
+                                            <button onclick="renderVendorMain()" class="text-slate-500 hover:text-white transition-colors mr-4">Job Board</button>
+                                            <button onclick="renderVendorStats()" class="text-slate-500 hover:text-white transition-colors mr-4">Stats</button>
+                                            <button onclick="renderVendorEditServices()" class="text-slate-500 hover:text-white transition-colors mr-4">Services</button>
+                                            <div class="h-8 w-px bg-slate-200"></div>
+                                            <button onclick="logout()" class="flex items-center gap-3 text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors group">
+                                                <div class="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></div>
+                                            </button>`
+                                        : `
+                                                    <button onclick="renderCustomerBookings()" class="text-slate-600 hover:text-slate-900 transition-colors mr-4">My Bookings</button>
+                                                    <button class="text-slate-500 hover:text-slate-900 transition-colors relative mr-4"><i class="far fa-bell text-xl"></i><span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span></button>
+                                                    <button onclick="logout()" class="text-slate-600 mr-4 hover:text-rose-600">Logout</button>
+                                                    <div class="h-8 w-px bg-slate-200"></div>
+                                                    <button onclick="logout()" class="flex items-center gap-3 text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors group">
+                                                        <div class="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-user-alt"></i></div>
+                                                    </button>` )
+                                : `<button onclick="renderAuth()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm tracking-wide text-sm">Sign In</button>`;
+
+            const html = `
+                <nav class="glass-nav fixed w-full z-50 top-0">
+                    <div class="max-w-7xl mx-auto px-6 h-[80px] flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 gradient-bg text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-layer-group text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-xl tracking-tight text-slate-900 hidden sm:block">Serve Ease</span>
+                        </div>
+                        <div class="flex-1 mx-6 hidden md:flex items-center">
+                            <div class="w-full bg-white rounded-full shadow-sm border border-slate-100 flex items-center overflow-hidden">
+                                <div class="px-4 py-3 flex items-center gap-3 border-r border-slate-100">
+                                    <i class="fas fa-map-marker-alt text-slate-400"></i>
+                                    <select id="navLocationSelect" aria-label="Location" class="bg-transparent outline-none text-sm text-slate-700 font-medium">
+                                        <option value="current">Current location</option>
+                                        <option value="city">City Center</option>
+                                        <option value="north">North Zone</option>
+                                    </select>
+                                    <button id="useLocationBtn" onclick="geolocateUser()" title="Use my current location" class="ml-2 text-slate-400 hover:text-slate-600"><i class="fas fa-location-arrow"></i></button>
+                                </div>
+                                <div class="flex-1 px-4 py-3">
+                                    <input id="navSearchInput" aria-label="Search services" type="text" placeholder="Search for services, e.g. AC repair, Home cleaning" class="w-full border-none outline-none text-sm text-slate-700 placeholder-slate-400">
+                                </div>
+                                <div class="px-4 py-2">
+                                    <button onclick="performSearch()" id="navSearchBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-full font-semibold shadow">Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            ${navAuthHtml}
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full animate-fade-in relative z-10">
+                    <div class="relative rounded-[32px] overflow-hidden bg-slate-900 text-white p-8 md:p-14 mb-14 shadow-2xl">
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-luminosity"></div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-900/95 via-indigo-900/80 to-transparent"></div>
+                        <div class="relative z-10 max-w-xl">
+                            <h2 class="text-4xl md:text-5xl font-heading font-black mb-5 leading-[1.1] tracking-tight">Expert care,<br/>for your space.</h2>
+                            <p class="text-slate-300 text-lg md:text-xl font-medium mb-6">Access thousands of verified specialists standing by to assist.</p>
+                            <form onsubmit="event.preventDefault(); performSearch();" class="bg-white/10 rounded-2xl p-4 md:p-2 max-w-2xl">
+                                <div class="flex gap-3 items-center">
+                                    <div class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm w-64">
+                                        <i class="fas fa-map-marker-alt text-indigo-600"></i>
+                                        <input id="heroLocationInput" aria-label="Hero location" placeholder="Enter location" class="bg-transparent outline-none text-sm text-white placeholder-white/70" />
+                                        <button type="button" onclick="geolocateUser(true)" class="ml-2 text-white/80 hover:text-white"><i class="fas fa-location-arrow"></i></button>
+                                    </div>
+                                    <div class="flex-1">
+                                        <input id="heroServiceInput" aria-label="Hero service" placeholder="What service do you need? e.g. Plumbing" class="bg-white/10 placeholder-white/70 text-white rounded-lg px-4 py-3 w-full outline-none" />
+                                    </div>
+                                    <button type="submit" class="bg-amber-400 text-slate-900 px-5 py-3 rounded-2xl font-bold">Search</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl md:text-3xl font-heading font-extrabold text-slate-900 tracking-tight">Popular Services</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                        ${serviceCards}
+                    </div>
+                    <div class="glass-card bg-indigo-600 overflow-hidden border-none rounded-[32px] p-10 flex flex-col md:flex-row shadow-2xl relative">
+                        <div class="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full blur-[60px] translate-x-1/2 -translate-y-1/2"></div>
+                        <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 w-full">
+                            <div class="flex items-center gap-6">
+                                <div class="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner text-white text-3xl"><i class="fas fa-shield-alt"></i></div>
+                                <div>
+                                    <h4 class="text-2xl font-heading font-extrabold text-white mb-2">Serve Ease Trust Guarantee</h4>
+                                    <p class="text-white/80 font-medium">All professionals are strictly vetted, and projects are insured up to $10k.</p>
+                                </div>
+                            </div>
+                            <button class="bg-white text-indigo-600 px-6 py-3 font-bold rounded-xl whitespace-nowrap hover:shadow-lg transition-shadow">Read Policy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bookingModal" class="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 opacity-0 transition-opacity">
+                    <div class="bg-white rounded-[24px] w-full max-w-[520px] shadow-2xl overflow-hidden" id="bookingModalBox" role="dialog" aria-modal="true" aria-labelledby="modalServiceName">
+                        <div class="p-6 pb-4 border-b border-slate-100 flex justify-between items-start">
+                            <div>
+                                <span class="bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md mb-3 inline-block">Confirm details</span>
+                                <h3 class="font-heading font-extrabold text-2xl text-slate-900 tracking-tight" id="modalServiceName">Service Name</h3>
+                            </div>
+                            <button onclick="closeModal()" aria-label="Close booking" class="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4 mb-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="flex items-center gap-3 p-3 rounded-lg border bg-white">
+                                        <i class="far fa-calendar-alt text-indigo-500"></i>
+                                        <input id="modalDate" type="date" class="flex-1 bg-transparent outline-none text-sm text-slate-700" />
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 rounded-lg border bg-white">
+                                        <i class="far fa-clock text-indigo-500"></i>
+                                        <input id="modalTime" type="time" class="flex-1 bg-transparent outline-none text-sm text-slate-700" />
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3 p-3 rounded-lg border bg-white">
+                                    <i class="fas fa-map-marker-alt text-indigo-500"></i>
+                                    <input id="modalLocation" type="text" placeholder="Location (e.g. Home address)" class="flex-1 bg-transparent outline-none text-sm text-slate-700" />
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg border bg-white">
+                                    <i class="fas fa-user text-indigo-500"></i>
+                                    <input id="modalPhone" type="tel" placeholder="Contact number" class="flex-1 bg-transparent outline-none text-sm text-slate-700" />
+                                </div>
+                            </div>
+                            <button id="confirmBookBtn" class="w-full gradient-bg text-white py-3 rounded-2xl font-bold hover:shadow-xl hover:shadow-indigo-500/30 transition-all text-lg font-heading tracking-wide">Place Request Securely</button>
+                            <p class="text-center text-xs text-slate-400 font-medium mt-4">By booking, you agree to our Terms of Service.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        // Customer bookings page
+        const renderCustomerBookings = async (statusFilter = 'all') => {
+            let bookings = [];
+            const userId = getActiveUserId();
+            if (!userId) {
+                renderAuth();
+                showToast('Please sign in to view your bookings', 'info');
+                return;
+            }
+            try { bookings = await apiCall(`/bookings/user?user_id=${userId}`); } catch (e) { bookings = []; }
+
+            const formatBookingDate = (value) => {
+                if (!value) return 'Not scheduled';
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return value;
+                return date.toLocaleString([], {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+            };
+
+            const statusMeta = (status) => {
+                const value = (status || 'pending').toLowerCase();
+                if (value === 'accepted') return { label: 'Accepted', classes: 'bg-amber-100 text-amber-700 border-amber-200', icon: 'fa-circle-check' };
+                if (value === 'delivered') return { label: 'Completed', classes: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: 'fa-badge-check' };
+                return { label: 'Pending', classes: 'bg-sky-100 text-sky-700 border-sky-200', icon: 'fa-clock' };
+            };
+
+            const trackingState = (status) => {
+                const value = (status || 'pending').toLowerCase();
+                if (value === 'delivered') return 3;
+                if (value === 'accepted') return 2;
+                return 1;
+            };
+
+            const counts = bookings.reduce((acc, booking) => {
+                const key = (booking.status || 'pending').toLowerCase();
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, { pending: 0, accepted: 0, delivered: 0 });
+
+            const visibleBookings = statusFilter === 'all'
+                ? bookings
+                : bookings.filter(booking => (booking.status || 'pending').toLowerCase() === statusFilter);
+
+            const items = visibleBookings.length === 0
+                ? `<div class="bg-white rounded-[28px] p-10 text-center border border-slate-100 shadow-sm">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl mb-5"><i class="fas fa-calendar-xmark"></i></div>
+                        <h3 class="text-2xl font-heading font-extrabold text-slate-900 mb-2">No bookings yet</h3>
+                        <p class="text-slate-500 max-w-md mx-auto mb-8">Your service requests will appear here with live status updates, schedule details, and contact info.</p>
+                        <button onclick="renderCustomer()" class="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-sm">Explore services</button>
+                    </div>`
+                : visibleBookings.map(b => {
+                    const meta = statusMeta(b.status);
+                    return `
+                    <div class="bg-white rounded-[28px] p-5 sm:p-6 md:p-7 border border-slate-100 shadow-sm hover:shadow-lg transition-shadow">
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                            <div class="flex items-start gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-sky-50 text-indigo-600 flex items-center justify-center text-xl flex-shrink-0 border border-indigo-100">
+                                    <i class="fas fa-broom"></i>
+                                </div>
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-3 mb-2">
+                                        <h3 class="text-xl font-heading font-extrabold text-slate-900">${b.service_type}</h3>
+                                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold ${meta.classes}"><i class="fas ${meta.icon}"></i> ${meta.label}</span>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-600">
+                                        <div class="flex items-center gap-2"><i class="far fa-calendar text-indigo-500"></i> Requested: <span class="font-medium text-slate-800">${formatBookingDate(b.created_at)}</span></div>
+                                        <div class="flex items-center gap-2"><i class="far fa-clock text-indigo-500"></i> Scheduled: <span class="font-medium text-slate-800">${formatBookingDate(b.when)}</span></div>
+                                        ${b.location ? `<div class="flex items-center gap-2 sm:col-span-2"><i class="fas fa-map-marker-alt text-indigo-500"></i> ${b.location}</div>` : ''}
+                                        ${b.contact_phone ? `<div class="flex items-center gap-2"><i class="fas fa-phone text-indigo-500"></i> ${b.contact_phone}</div>` : ''}
+                                    </div>
+                                    <div class="mt-3 text-xs text-slate-400 font-mono">Booking ID: ${b.id}</div>
+                                    <div class="mt-5 rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                                        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-3">
+                                            <span>Tracking</span>
+                                            <span>${meta.label}</span>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <div class="text-center">
+                                                <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center ${trackingState(b.status) >= 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-check text-xs"></i></div>
+                                                <div class="text-[11px] mt-2 text-slate-500">Booked</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center ${trackingState(b.status) >= 2 ? 'bg-amber-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-user-check text-xs"></i></div>
+                                                <div class="text-[11px] mt-2 text-slate-500">Assigned</div>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center ${trackingState(b.status) >= 3 ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-flag-checkered text-xs"></i></div>
+                                                <div class="text-[11px] mt-2 text-slate-500">Done</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-row lg:flex-col gap-3 lg:items-end sm:w-full lg:w-auto">
+                                <button onclick="bookModal('${b.service_type}')" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Book again</button>
+                                <button onclick="renderCustomer()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold">Browse</button>
+                            </div>
+                        </div>
+                    </div>
+                `; }).join('');
+
+            const html = `
+                <nav class="glass-nav fixed w-full z-50 top-0">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 gradient-bg text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-layer-group text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-2xl tracking-tight text-slate-900 hidden sm:block">Serve Ease</span>
+                        </div>
+                        <div class="flex items-center gap-5">
+                            <button onclick="renderCustomer()" class="text-slate-600 hover:text-slate-900 transition-colors mr-4">Explore</button>
+                            <button onclick="logout()" class="text-slate-600">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-24 sm:pt-28 pb-16 px-4 sm:px-6 max-w-6xl mx-auto">
+                    <div class="rounded-[32px] overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 text-white p-6 sm:p-8 md:p-10 shadow-2xl mb-8">
+                        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                            <div>
+                                <p class="text-indigo-200 uppercase tracking-[0.28em] text-xs font-bold mb-3">Customer Dashboard</p>
+                                <h2 class="text-3xl md:text-4xl font-heading font-black mb-3">My Bookings</h2>
+                                <p class="text-slate-300 max-w-2xl">Track service requests, check timing, and jump back into booking the same service again in one click.</p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:min-w-[280px]">
+                                <div class="bg-white/10 backdrop-blur rounded-2xl p-4 text-center border border-white/10"><div class="text-2xl font-black">${bookings.length}</div><div class="text-xs text-slate-300 mt-1">Total</div></div>
+                                <div class="bg-white/10 backdrop-blur rounded-2xl p-4 text-center border border-white/10"><div class="text-2xl font-black">${counts.pending || 0}</div><div class="text-xs text-slate-300 mt-1">Pending</div></div>
+                                <div class="bg-white/10 backdrop-blur rounded-2xl p-4 text-center border border-white/10"><div class="text-2xl font-black">${counts.delivered || 0}</div><div class="text-xs text-slate-300 mt-1">Done</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6 overflow-x-auto pb-1 whitespace-nowrap -mx-1 px-1">
+                        <button onclick="renderCustomerBookings('all')" class="px-4 py-2 rounded-full ${statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-700'} font-semibold">All</button>
+                        <button onclick="renderCustomerBookings('pending')" class="px-4 py-2 rounded-full ${statusFilter === 'pending' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-700'} font-semibold">Pending</button>
+                        <button onclick="renderCustomerBookings('accepted')" class="px-4 py-2 rounded-full ${statusFilter === 'accepted' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-700'} font-semibold">Accepted</button>
+                        <button onclick="renderCustomerBookings('delivered')" class="px-4 py-2 rounded-full ${statusFilter === 'delivered' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-700'} font-semibold">Completed</button>
+                        <div class="ml-auto text-sm text-slate-500">Live from your account history</div>
+                    </div>
+                    <div class="space-y-4">
+                        ${items}
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        // Vendor: main job board (improved with sidebar filters, counts, and clearer actions)
+        const renderVendorMain = async () => {
+            let bookings = [];
+            try { bookings = await apiCall('/bookings/pending'); } catch (e) { bookings = []; }
+
+            const pendingCount = bookings.length;
+            const acceptedCount = (await (async () => { try { return (await apiCall('/vendor/stats')).live || 0 } catch(e){ return 0 } })()) || 0;
+            const deliveredCount = (await (async () => { try { return (await apiCall('/vendor/stats')).reputation ? Math.round((await apiCall('/vendor/stats')).reputation*0) : 0 } catch(e){ return 0 } })()) || 0;
+
+            const bookingCards = bookings.length === 0
+                ? `<div class="bg-white rounded-[32px] p-16 text-center border border-slate-200 flex flex-col items-center justify-center shadow-sm"><div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-4xl mb-6 text-slate-300 shadow-inner"><i class="fas fa-sparkles"></i></div><h3 class="text-2xl font-heading font-extrabold text-slate-800 mb-2">You're all caught up!</h3><p class="text-slate-500 max-w-sm mb-8 font-medium">Currently no local service requests. Refresh to sync.</p><button onclick="refreshVendor()" class="px-8 py-3.5 rounded-xl bg-slate-900 text-white font-bold">Sync Board</button></div>`
+                : bookings.map(b => `
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 hover-lift premium-shadow animate-slide-up flex flex-col lg:flex-row lg:items-center justify-between gap-6 transition-all relative overflow-hidden group" role="article" aria-labelledby="booking-${b.id}">
+                        <div class="flex items-start gap-5">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm border border-indigo-100">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h3 id="booking-${b.id}" class="text-xl font-heading font-extrabold text-slate-900">${b.service_type}</h3>
+                                    <span class="badge-premium bg-amber-100 text-amber-700 shadow-sm">${b.intent || 'NEW'}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm font-medium text-slate-500 mt-2">
+                                    <span class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md"><i class="far fa-clock text-indigo-500"></i> ${b.when || 'ASAP'}</span>
+                                    ${b.location ? `<span class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md"><i class="fas fa-map-marker-alt text-indigo-500"></i> ${b.location}</span>` : ''}
+                                </div>
+                                <div class="text-sm text-slate-500 mt-2">Booking ID: <span class="font-mono text-xs text-slate-600">${b.id}</span></div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 mt-4 lg:mt-0">
+                            <button onclick="acceptBooking(${b.id})" class="px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold" aria-label="Accept booking ${b.id}">Accept</button>
+                            <button onclick="markDelivered(${b.id})" class="px-5 py-3 rounded-xl bg-white border text-slate-700" aria-label="Mark delivered ${b.id}">Finish</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            const html = `
+                <nav class="bg-[#0f172a] text-white fixed w-full z-50 top-0 shadow-2xl">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-500 text-white rounded-[12px] flex items-center justify-center shadow-lg"><i class="fas fa-briefcase text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-xl tracking-wide hidden sm:block">Vendor OS</span>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <button onclick="renderVendorMain()" class="text-white">Job Board</button>
+                            <button onclick="renderVendorStats()" class="text-slate-300">Stats</button>
+                            <button onclick="renderVendorEditServices()" class="text-slate-300">Services</button>
+                            <button onclick="logout()" class="text-rose-400 ml-4">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full animate-fade-in relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <aside class="lg:col-span-1">
+                            <div class="bg-white rounded-2xl p-6 shadow-sm border">
+                                <h4 class="font-heading font-extrabold text-lg mb-4">Overview</h4>
+                                <div class="grid grid-cols-3 gap-3 text-center">
+                                    <div><div class="text-sm text-slate-500">Pending</div><div class="text-xl font-bold">${pendingCount}</div></div>
+                                    <div><div class="text-sm text-slate-500">Accepted</div><div class="text-xl font-bold">${acceptedCount}</div></div>
+                                    <div><div class="text-sm text-slate-500">Delivered</div><div class="text-xl font-bold">${deliveredCount}</div></div>
+                                </div>
+                                <div class="mt-6">
+                                    <h5 class="text-sm font-semibold mb-2">Filters</h5>
+                                    <select class="input-premium w-full"><option>All locations</option></select>
+                                </div>
+                            </div>
+                        </aside>
+                        <main class="lg:col-span-3">
+                            <h2 class="text-3xl font-heading font-extrabold mb-6">Job Board</h2>
+                            <div class="flex flex-col gap-6">${bookingCards}</div>
+                        </main>
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        // Vendor stats page
+        const renderVendorStats = async () => {
+            let stats = { live: 0, reputation: 4.9, earnings: '$1.2k' };
+            try { const res = await apiCall('/vendor/stats'); stats = res; } catch (e) {}
+            const html = `
+                <nav class="bg-[#0f172a] text-white fixed w-full z-50 top-0 shadow-2xl">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-500 text-white rounded-[12px] flex items-center justify-center shadow-lg"><i class="fas fa-briefcase text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-xl tracking-wide hidden sm:block">Vendor OS</span>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <button onclick="renderVendorMain()" class="text-slate-300">Job Board</button>
+                            <button onclick="renderVendorStats()" class="text-white">Stats</button>
+                            <button onclick="renderVendorEditServices()" class="text-slate-300">Services</button>
+                            <button onclick="logout()" class="text-rose-400 ml-4">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-28 px-6 max-w-7xl mx-auto">
+                    <h2 class="text-2xl font-heading font-extrabold mb-6">Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl">
+                            <div class="text-sm text-slate-500">Live Requests</div>
+                            <div class="text-3xl font-bold mt-2">${stats.live}</div>
+                            <div class="h-2 bg-slate-100 rounded-full mt-4 overflow-hidden"><div style="width:${Math.min(100, stats.live * 10)}%" class="h-2 bg-emerald-400"></div></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl">
+                            <div class="text-sm text-slate-500">Reputation</div>
+                            <div class="text-3xl font-bold mt-2">${stats.reputation}</div>
+                            <div class="text-xs text-slate-400 mt-2">Average rating from customers</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl">
+                            <div class="text-sm text-slate-500">Month Earnings</div>
+                            <div class="text-3xl font-bold mt-2">${stats.earnings}</div>
+                            <div class="text-xs text-slate-400 mt-2">Projected monthly earnings</div>
+                        </div>
+                    </div>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-2xl">
+                            <h4 class="font-semibold mb-3">Recent Jobs</h4>
+                            <div id="recentJobsList" class="space-y-3 text-sm text-slate-600">Loading...</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl">
+                            <h4 class="font-semibold mb-3">Performance</h4>
+                            <div class="text-sm text-slate-600">Weekly trend (placeholder)</div>
+                            <div class="mt-4 h-44 bg-transparent rounded-lg overflow-hidden">
+                                <canvas id="vendorStatsChart" height="160"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            render(html);
+            // load recent jobs into placeholder
+            try {
+                const recent = await apiCall('/bookings/pending');
+                const list = recent.slice(0,6).map(r => `<div class="flex justify-between"><div>${r.service_type}</div><div class="text-slate-500 text-xs">${r.when||'ASAP'}</div></div>`).join('');
+                document.getElementById('recentJobsList').innerHTML = list || '<div class="text-slate-400">No recent jobs</div>';
+            } catch (e) { document.getElementById('recentJobsList').innerHTML = '<div class="text-slate-400">No recent jobs</div>'; }
+            // render weekly pending chart if Chart.js present
+            try {
+                const canvas = document.getElementById('vendorStatsChart');
+                if (canvas && window.Chart) {
+                    const pending = await apiCall('/bookings/pending');
+                    const last7 = [];
+                    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0,10)); }
+                    const counts = last7.map(_ => 0);
+                    pending.forEach(p => {
+                        if (!p.created_at) return;
+                        const day = p.created_at.slice(0,10);
+                        const idx = last7.indexOf(day);
+                        if (idx >= 0) counts[idx]++;
+                    });
+                    if (window._vendorChart) window._vendorChart.destroy();
+                    window._vendorChart = new Chart(canvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: last7.map(d => new Date(d).toLocaleDateString()),
+                            datasets: [{ label: 'Pending requests', data: counts, backgroundColor: 'rgba(79,70,229,0.8)' }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                    });
+                }
+            } catch (e) { /* ignore chart errors */ }
+        };
+
+        const refreshServices = () => renderVendorEditServices();
+
+        const addServicePrompt = async () => {
+            const name = prompt('Service name');
+            if (!name) return;
+            const category = prompt('Category', 'General') || 'General';
+            const price_hint = prompt('Price hint', 'From $29') || 'From $29';
+            try {
+                await apiCall('/vendor/services', 'POST', { name, category, price_hint });
+                showToast('Service added', 'success');
+                renderVendorEditServices();
+            } catch (error) {
+                showToast('Could not add service', 'error');
+            }
+        };
+
+        const editService = async (service) => {
+            const name = prompt('Service name', service.name);
+            if (!name) return;
+            const category = prompt('Category', service.category || 'General') || 'General';
+            const price_hint = prompt('Price hint', service.price_hint || 'From $29') || 'From $29';
+            try {
+                await apiCall(`/vendor/services/${service.id}`, 'PUT', { name, category, price_hint, active: service.active });
+                showToast('Service updated', 'success');
+                renderVendorEditServices();
+            } catch (error) {
+                showToast('Could not update service', 'error');
+            }
+        };
+
+        const deleteService = async (service) => {
+            if (!confirm(`Delete ${service.name}?`)) return;
+            try {
+                await apiCall(`/vendor/services/${service.id}`, 'DELETE');
+                showToast('Service deleted', 'success');
+                renderVendorEditServices();
+            } catch (error) {
+                showToast('Could not delete service', 'error');
+            }
+        };
+
+        const toggleServiceActive = async (id, currentActive) => {
+            try {
+                await apiCall(`/vendor/services/${id}`, 'PUT', { active: !currentActive });
+                showToast('Service updated', 'success');
+                renderVendorEditServices();
+            } catch (e) { showToast('Could not update service', 'error'); }
+        };
+
+        // Vendor: edit services page
+        const renderVendorEditServices = async () => {
+            let services = [];
+            try { services = await apiCall('/vendor/services'); } catch (e) { services = []; }
+            const items = services.map(s => `
+                <div class="bg-white p-4 rounded-lg flex justify-between items-center mb-3">
+                    <div>
+                        <div class="font-semibold text-slate-900">${s.name}</div>
+                        <div class="text-xs text-slate-500">${s.category || 'General'} · ${s.price_hint || 'From $29'}</div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <button onclick='editService(${JSON.stringify(s)})' class="px-3 py-1 rounded bg-indigo-600 text-white">Edit</button>
+                        <button onclick='deleteService(${JSON.stringify(s)})' class="px-3 py-1 rounded border">Delete</button>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" ${s.active ? 'checked' : ''} onchange="toggleServiceActive(${s.id}, ${s.active})"/> Active</label>
+                    </div>
+                </div>
+            `).join('');
+            const html = `
+                <nav class="bg-[#0f172a] text-white fixed w-full z-50 top-0 shadow-2xl">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-indigo-500 text-white rounded-[12px] flex items-center justify-center shadow-lg"><i class="fas fa-briefcase text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-xl tracking-wide hidden sm:block">Vendor OS</span>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <button onclick="renderVendorMain()" class="text-slate-300">Job Board</button>
+                            <button onclick="renderVendorStats()" class="text-slate-300">Stats</button>
+                            <button onclick="renderVendorEditServices()" class="text-white">Services</button>
+                            <button onclick="logout()" class="text-rose-400 ml-4">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-28 px-6 max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-heading font-extrabold mb-6">Manage Services</h2>
+                    ${items}
+                    <button onclick="addServicePrompt()" class="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl">Add Service</button>
+                </div>
+            `;
+            render(html);
+        };
+
+        const renderVendor = async () => renderVendorMain();
+
+        let pendingServiceBooking = null;
+
+        function bookFromService(name) {
+            bookModal(name);
+        }
+
+        function openServiceDetails(service) {
+            const modal = document.getElementById('serviceDetailModal');
+            const title = document.getElementById('serviceDetailTitle');
+            const body = document.getElementById('serviceDetailBody');
+            if (!modal || !title || !body) return;
+            title.textContent = service.name || 'Service details';
+            body.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100"><div class="text-slate-500 mb-1">Category</div><div class="font-semibold text-slate-900">${service.category || 'General'}</div></div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100"><div class="text-slate-500 mb-1">Starting price</div><div class="font-semibold text-slate-900">${service.price_hint || 'From $29'}</div></div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100"><div class="text-slate-500 mb-1">Rating</div><div class="font-semibold text-slate-900">4.7 / 5</div></div>
+                    <div class="rounded-2xl bg-slate-50 p-4 border border-slate-100"><div class="text-slate-500 mb-1">Availability</div><div class="font-semibold text-emerald-700">Live now</div></div>
+                </div>
+                <div class="mt-4 rounded-2xl bg-indigo-50 border border-indigo-100 p-4 text-slate-700">
+                    Verified professionals, clear pricing, and same-day booking support.
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeServiceDetails() {
+            const modal = document.getElementById('serviceDetailModal');
+            if (!modal) return;
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 250);
+        }
+
+        // Service listing page (MakeMyTrip-like list with filters)
+        const renderServiceList = async (query = '', category = 'all', location = '') => {
+            // use backend services endpoint
+            let services = [];
+            try { services = await apiCall('/vendor/services'); } catch (e) { services = []; }
+
+            // filter services by query (name/category) if provided
+            const q = (query || '').trim().toLowerCase();
+            const c = (category || 'all').trim().toLowerCase();
+            if (q) {
+                services = services.filter(s => (s.name || '').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
+            }
+            if (c && c !== 'all') {
+                services = services.filter(s => (s.category || '').toLowerCase() === c);
+            }
+
+            const items = services.length === 0
+                ? `<div class="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-slate-50 text-slate-300 flex items-center justify-center text-2xl mb-4"><i class="fas fa-magnifying-glass"></i></div>
+                        <h3 class="text-xl font-heading font-extrabold text-slate-900 mb-2">No services matched</h3>
+                        <p class="text-slate-500 mb-6">Try a broader search or clear the category filter to see all available services.</p>
+                        <button onclick="document.getElementById('serviceListSearchInput').value=''; document.getElementById('serviceListCategorySelect').value='all'; renderServiceList('', 'all')" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold">Reset filters</button>
+                    </div>`
+                : services.map(s => `
+                <div class="bg-white rounded-2xl p-4 flex items-center justify-between border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center gap-4">
+                        <div class="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center text-2xl text-indigo-600"><i class="fas fa-tools"></i></div>
+                        <div>
+                            <div class="font-semibold text-lg">${s.name}</div>
+                            <div class="text-xs text-slate-500">${s.category} · ${s.price_hint}</div>
+                            <div class="text-sm text-amber-500 mt-2"><i class="fas fa-star mr-1"></i>4.7</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-3">
+                        <div class="text-sm font-bold text-slate-800">${s.price_hint}</div>
+                        <div class="flex gap-2">
+                            <button onclick='bookFromService(${JSON.stringify(s.name)})' class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Book</button>
+                            <button onclick='openServiceDetails(${JSON.stringify(s)})' class="px-3 py-2 border rounded-lg">Details</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const html = `
+                <nav class="glass-nav fixed w-full z-50 top-0">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 gradient-bg text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-layer-group text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-2xl tracking-tight text-slate-900 hidden sm:block">Serve Ease</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button onclick="renderCustomer()" class="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg bg-white">Home</button>
+                            <input id="serviceListSearchInput" placeholder="Search services" oninput="this._q=event.target.value" class="input-premium" />
+                            <button onclick="renderServiceList(document.getElementById('serviceListSearchInput').value, document.getElementById('serviceListCategorySelect').value)" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Search</button>
+                            <button onclick="logout()" class="text-slate-600">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-28 px-6 max-w-7xl mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <aside class="lg:col-span-1">
+                            <div class="bg-white p-4 rounded-lg border mb-4">
+                                <h4 class="font-semibold mb-2">Filters</h4>
+                                <div class="text-sm text-slate-600">Category</div>
+                                <select id="serviceListCategorySelect" onchange="renderServiceList(document.getElementById('serviceListSearchInput').value, this.value)" class="input-premium mt-2">
+                                    <option value="all">All</option>
+                                    <option value="cleaning">Cleaning</option>
+                                    <option value="repairs">Repairs</option>
+                                    <option value="renovation">Renovation</option>
+                                    <option value="woodwork">Woodwork</option>
+                                    <option value="appliance">Appliance</option>
+                                </select>
+                                <button onclick="document.getElementById('serviceListSearchInput').value=''; document.getElementById('serviceListCategorySelect').value='all'; renderServiceList('', 'all')" class="mt-3 w-full px-4 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white">Clear filters</button>
+                            </div>
+                            <div class="bg-gradient-to-br from-indigo-600 to-sky-600 text-white p-5 rounded-2xl shadow-lg">
+                                <div class="text-xs uppercase tracking-widest text-white/70 mb-2">Quick Actions</div>
+                                <h5 class="text-lg font-bold mb-2">Need help now?</h5>
+                                <p class="text-sm text-white/80 mb-4">Go back home or jump directly into a booking flow.</p>
+                                <button onclick="renderCustomer()" class="w-full bg-white text-indigo-700 rounded-xl py-2.5 font-bold">Home</button>
+                            </div>
+                        </aside>
+                        <main class="lg:col-span-3">
+                            <h2 class="text-2xl font-heading font-extrabold mb-4">Available Services</h2>
+                            <div class="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                                <i class="fas fa-filter text-indigo-500"></i>
+                                <span>${services.length} service${services.length === 1 ? '' : 's'} found${q ? ` for “${q}”` : ''}${c && c !== 'all' ? ` in ${c}` : ''}</span>
+                            </div>
+                            <div class="space-y-3">
+                                ${items}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+                <div id="serviceDetailModal" class="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 opacity-0 transition-opacity">
+                    <div class="bg-white rounded-[24px] w-full max-w-[560px] shadow-2xl overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 flex justify-between items-start gap-4">
+                            <div>
+                                <span class="bg-sky-100 text-sky-700 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md mb-3 inline-block">Service details</span>
+                                <h3 id="serviceDetailTitle" class="font-heading font-extrabold text-2xl text-slate-900 tracking-tight">Service</h3>
+                            </div>
+                            <button onclick="closeServiceDetails()" aria-label="Close service details" class="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="serviceDetailBody" class="p-6"></div>
+                        <div class="p-6 pt-0 flex gap-3">
+                            <button onclick="bookFromService(document.getElementById('serviceDetailTitle').textContent)" class="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-bold">Book now</button>
+                            <button onclick="closeServiceDetails(); renderCustomer()" class="px-5 py-3 rounded-2xl border border-slate-200 font-semibold text-slate-700">Home</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        // Booking summary page
+        const renderBookingSummary = (bookingId, meta = {}) => {
+            const when = meta.when ? new Date(meta.when).toLocaleString() : 'ASAP';
+            const step = (meta.status || 'pending').toLowerCase() === 'delivered' ? 3 : (meta.status || 'pending').toLowerCase() === 'accepted' ? 2 : 1;
+            const html = `
+                <nav class="glass-nav fixed w-full z-50 top-0">
+                    <div class="max-w-7xl mx-auto px-6 h-[72px] flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 gradient-bg text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-layer-group text-lg"></i></div>
+                            <span class="font-heading font-extrabold text-2xl tracking-tight text-slate-900 hidden sm:block">Serve Ease</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button onclick="renderCustomer()" class="text-slate-600">Explore</button>
+                            <button onclick="logout()" class="text-slate-600">Logout</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="pt-24 sm:pt-28 px-4 sm:px-6 max-w-4xl mx-auto pb-16">
+                    <div class="bg-white p-6 sm:p-8 rounded-[28px] shadow-lg border border-slate-100">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                            <div>
+                                <h2 class="text-2xl md:text-3xl font-heading font-extrabold mb-2">Booking Confirmed</h2>
+                                <p class="text-slate-600">Your booking <span class="font-semibold">#${bookingId}</span> is confirmed.</p>
+                            </div>
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold text-sm self-start"><i class="fas fa-shield-check"></i> Secure tracking enabled</div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                            <div class="flex justify-between gap-4 rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Service</div><div class="font-semibold text-right">${meta.service || ''}</div></div>
+                            <div class="flex justify-between gap-4 rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Scheduled</div><div class="font-semibold text-right">${when}</div></div>
+                            <div class="flex justify-between gap-4 rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Location</div><div class="font-semibold text-right">${meta.location || 'N/A'}</div></div>
+                            <div class="flex justify-between gap-4 rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Contact</div><div class="font-semibold text-right">${meta.phone || localStorage.getItem('phone') || 'N/A'}</div></div>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4 mb-6">
+                            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-3">
+                                <span>Tracking</span>
+                                <span>${meta.status || 'pending'}</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="text-center">
+                                    <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center ${step >= 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-check text-xs"></i></div>
+                                    <div class="text-[11px] mt-2 text-slate-500">Booked</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center ${step >= 2 ? 'bg-amber-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-user-check text-xs"></i></div>
+                                    <div class="text-[11px] mt-2 text-slate-500">Assigned</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center ${step >= 3 ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}"><i class="fas fa-flag-checkered text-xs"></i></div>
+                                    <div class="text-[11px] mt-2 text-slate-500">Done</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                            <button onclick="renderCustomer()" class="px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold w-full sm:w-auto">Back to Home</button>
+                            <button onclick="renderCustomerBookings()" class="px-4 py-3 border rounded-xl font-semibold w-full sm:w-auto">View My Bookings</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            render(html);
+        };
+
+        const sendOtp = async () => {
+            const phone = document.getElementById('phone').value;
+            const role = document.getElementById('role').value;
+            if (!phone || phone.length !== 10) return showToast('Enter 10-digit mobile number', 'error');
+            const fullPhone = '+91' + phone;
+            try {
+                if (!window.recaptchaVerifier) {
+                    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                        size: 'invisible', callback: () => {}
+                    });
+                    await window.recaptchaVerifier.render();
+                }
+                showToast('Sending OTP to ' + fullPhone + '…', 'info', 3000);
+                confirmationResult = await firebase.auth().signInWithPhoneNumber(fullPhone, window.recaptchaVerifier);
+                localStorage.setItem('phone', phone);
+                document.getElementById('phone-section').classList.add('hidden');
+                const otpSec = document.getElementById('otp-section');
+                otpSec.classList.remove('hidden');
+                otpSec.classList.add('animate-fade-in');
+                showToast('OTP sent! Check your SMS.', 'success');
+            } catch (err) {
+                showToast('Error: ' + (err.message || 'Could not send OTP'), 'error');
+                if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
+            }
+        };
+
+        // Prefill fields when demo cards are clicked on login page
+        function fillDemo(phone, role) {
+            const phoneEl = document.getElementById('phone');
+            const roleEl = document.getElementById('role');
+            if (phoneEl) { phoneEl.value = phone; phoneEl.focus(); }
+            if (roleEl) roleEl.value = role;
+            // update role button visuals if present
+            const custBtn = document.getElementById('roleCustomerBtn');
+            const vendBtn = document.getElementById('roleVendorBtn');
+            if (role === 'customer') {
+                if (custBtn) custBtn.classList.add('bg-white','shadow-md','text-indigo-600');
+                if (vendBtn) vendBtn.classList.remove('bg-white','shadow-md','text-indigo-600');
+            } else {
+                if (vendBtn) vendBtn.classList.add('bg-white','shadow-md','text-indigo-600');
+                if (custBtn) custBtn.classList.remove('bg-white','shadow-md','text-indigo-600');
+            }
+        }
+
+        // Geolocation + reverse geocoding (Nominatim) for friendly addresses
+        async function reverseGeocode(lat, lon) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.display_name || null;
+            } catch (e) { return null; }
+        }
+
+        function updateLocationInputs(address) {
+            const navSel = document.getElementById('navLocationSelect');
+            const hero = document.getElementById('heroLocationInput');
+            if (navSel) {
+                let opt = Array.from(navSel.options).find(o => o.value === 'resolved');
+                if (!opt) {
+                    opt = document.createElement('option');
+                    opt.value = 'resolved';
+                    navSel.insertBefore(opt, navSel.options[0].nextSibling);
+                }
+                opt.text = address || 'Current location';
+                navSel.value = 'resolved';
+            }
+            if (hero) hero.value = address || hero.value;
+        }
+
+        function geolocateUser(setHero = false) {
+            if (!navigator.geolocation) { showToast('Geolocation not supported in this browser', 'error'); return; }
+            showToast('Trying to detect your location...', 'info', 2000);
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+                const address = await reverseGeocode(lat, lon);
+                updateLocationInputs(address || (`${lat.toFixed(4)},${lon.toFixed(4)}`));
+                if (setHero) {
+                    const h = document.getElementById('heroLocationInput'); if (h) h.value = address || '';
+                }
+            }, (err) => {
+                showToast('Could not get location: ' + (err.message || 'Permission denied'), 'error');
+            }, { enableHighAccuracy: false, timeout: 8000 });
+        }
+
+        // Perform search from nav or hero, passing query+location to service list renderer
+        async function performSearch() {
+            const qNav = (document.getElementById('navSearchInput') || {}).value || '';
+            const qHero = (document.getElementById('heroServiceInput') || {}).value || '';
+            const query = qNav || qHero || '';
+            const locSel = document.getElementById('navLocationSelect');
+            let location = '';
+            if (locSel) {
+                const val = locSel.value;
+                if (val === 'resolved') location = locSel.options[locSel.selectedIndex].text;
+                else if (val === 'current') location = 'Current location';
+                else location = locSel.options[locSel.selectedIndex].text;
+            }
+            // Show the service listing with filters applied
+            renderServiceList(query, location);
+        }
+
+        const verifyOtp = async () => {
+            let otp = '';
+            document.querySelectorAll('.otp-input').forEach(i => otp += i.value);
+            if (otp.length !== 6) return showToast('Please enter full access code', 'error');
+            if (!confirmationResult) return showToast('Please request OTP first', 'error');
+            try {
+                const btn = document.querySelector('#otp-section button');
+                if (btn) btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Connecting...';
+                const result = await confirmationResult.confirm(otp);
+                const fbUser = result.user;
+                const phone = document.getElementById('phone').value;
+                const role = document.getElementById('role').value;
+                const res = await apiCall('/auth/firebase', 'POST', { phone, role, uid: fbUser.uid });
+                currentUser = res.user_id;
+                currentRole = res.role === 'vendor' ? 'vendor' : 'customer';
+                localStorage.setItem('user_id', String(res.user_id));
+                localStorage.setItem('role', currentRole);
+                showToast('Authentication passed securely', 'success');
+                setTimeout(() => {
+                    if (currentRole === 'customer') {
+                        renderCustomer();
+                        if (pendingServiceBooking) {
+                            const s = pendingServiceBooking; pendingServiceBooking = null;
+                            setTimeout(() => bookModal(s), 500);
+                        }
+                    } else { pendingServiceBooking = null; renderVendor(); }
+                }, 300);
+            } catch (err) {
+                showToast('Invalid OTP. Please retry.', 'error');
+                const btn = document.querySelector('#otp-section button');
+                if (btn) btn.innerHTML = 'Verify & Login';
+            }
+        };
+
+        let selectedService = '';
+        const bookModal = (name) => {
+            if (!currentUser) {
+                pendingServiceBooking = name;
+                showToast('Please sign in to book a service', 'info');
+                renderAuth();
+                return;
+            }
+            if (!document.getElementById('modalServiceName') || !document.getElementById('bookingModal')) {
+                selectedService = name;
+                renderCustomer();
+                setTimeout(() => bookModal(name), 350);
+                return;
+            }
+            selectedService = name;
+            document.getElementById('modalServiceName').innerText = name;
+            // Prefill modal values
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const hh = String(today.getHours()).padStart(2, '0');
+            const mins = String((today.getMinutes())).padStart(2, '0');
+            const dateEl = document.getElementById('modalDate');
+            const timeEl = document.getElementById('modalTime');
+            if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+            if (timeEl) timeEl.value = `${hh}:${mins}`;
+            const phoneEl = document.getElementById('modalPhone');
+            if (phoneEl) phoneEl.value = localStorage.getItem('phone') || '';
+
+            const modal = document.getElementById('bookingModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            document.getElementById('confirmBookBtn').onclick = () => bookService();
+        };
+
+        const closeModal = () => {
+            const modal = document.getElementById('bookingModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        const bookService = async () => {
+            try {
+                const date = document.getElementById('modalDate') ? document.getElementById('modalDate').value : '';
+                const time = document.getElementById('modalTime') ? document.getElementById('modalTime').value : '';
+                const when = date && time ? `${date}T${time}` : '';
+                const location = document.getElementById('modalLocation') ? document.getElementById('modalLocation').value : '';
+                const phone = document.getElementById('modalPhone') ? document.getElementById('modalPhone').value : '';
+                if (phone && phone.length >= 10) localStorage.setItem('phone', phone);
+                const res = await apiCall('/book', 'POST', { customer_id: currentUser, service_type: selectedService, when, location, contact_phone: phone });
+                closeModal();
+                showToast('Service requested. Finding best match.', 'success');
+                // Render booking summary page
+                setTimeout(() => renderBookingSummary(res.booking_id, { service: selectedService, when, location, phone }), 500);
+            } catch (e) { showToast('Request failed. Server error.', 'error'); }
+        };
+
+        const acceptBooking = async (id) => {
+            if (!confirm('Accept this job and mark yourself as assigned?')) return;
+            try {
+                await apiCall(`/bookings/${id}/accept`, 'POST', { vendor_id: currentUser });
+                showToast('Job locked in!', 'success');
+                renderVendor();
+            } catch(e) { showToast('Could not accept job', 'error'); }
+        };
+        const markDelivered = async (id) => {
+            if (!confirm('Mark this job as delivered?')) return;
+            try {
+                await apiCall(`/bookings/${id}/deliver`, 'POST', { vendor_id: currentUser });
+                showToast('Great job, mission accomplished', 'success');
+                renderVendor();
+            } catch(e) { showToast('Could not mark delivered', 'error'); }
+        };
+        const refreshVendor = () => { showToast('Syncing latest updates', 'info', 1000); renderVendor(); };
+        const logout = () => { currentUser = null; currentRole = null; localStorage.clear(); renderAuth(); showToast('Session terminated securely'); };
+
+        const init = () => {
+            const u = localStorage.getItem('user_id');
+            const r = localStorage.getItem('role');
+            if (u && r) { currentUser = parseInt(u, 10); currentRole = r === 'vendor' ? 'vendor' : 'customer'; currentRole === 'customer' ? renderCustomer() : renderVendor(); }
+            else { renderCustomer(); }
+        };
+        init();
+
+        // Footer injection helper (adds a consistent footer across pages)
+        const injectFooter = () => {
+            const footer = document.getElementById('siteFooter');
+            if (footer) return;
+            const f = document.createElement('footer');
+            f.id = 'siteFooter';
+            f.className = 'w-full bg-white border-t border-slate-100 mt-12';
+            f.innerHTML = `<div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-sm text-slate-600">
+                <div>© ${new Date().getFullYear()} Serve Ease — Trusted home services</div>
+                <div class="flex gap-4"><a href="#" class="hover:underline">Terms</a><a href="#" class="hover:underline">Privacy</a><a href="#" class="hover:underline">Contact</a></div>
+            </div>`;
+            document.body.appendChild(f);
+        };
+        // Ensure footer present after first render
+        setTimeout(injectFooter, 600);
+    </script>
+</body>
+</html>
