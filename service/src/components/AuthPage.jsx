@@ -44,10 +44,11 @@ export default function AuthPage() {
       console.error('[Firebase] sendOtp error:', err.code, err.message)
       let msg = 'Could not send OTP'
       const c = err.code || ''
-      if (c === 'auth/invalid-phone-number') msg = 'Invalid phone number'
+      if (c === 'auth/billing-not-enabled') msg = 'Firebase free plan only supports test numbers. Use the demo credentials below.'
+      else if (c === 'auth/invalid-phone-number') msg = 'Invalid phone number'
       else if (c === 'auth/too-many-requests') msg = 'Too many attempts — try later'
       else if (c.includes('unauthorized-domain') || c.includes('app-not-authorized'))
-        msg = 'Add localhost to Firebase Console → Auth → Settings → Authorized Domains'
+        msg = 'Add this domain in Firebase Console → Auth → Settings → Authorized Domains'
       showToast(msg, 'error')
       if (window.recaptchaVerifier) { try { window.recaptchaVerifier.clear() } catch (_) {} window.recaptchaVerifier = null }
     } finally { setLoading(false) }
