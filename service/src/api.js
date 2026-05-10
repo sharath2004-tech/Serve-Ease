@@ -1,4 +1,5 @@
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const _raw = import.meta.env.VITE_API_URL || '/api'
+const BASE = _raw.endsWith('/api') ? _raw : _raw.replace(/\/$/, '') + '/api'
 
 export const api = async (path, method = 'GET', body = null) => {
   const opts = { method, headers: { 'Content-Type': 'application/json' } }
